@@ -1,22 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+
+const DEFAULT_ITEM = {
+  item_location: '',
+  item_type: 'זברה',
+  width: '',
+  height: '',
+  color_or_fabric: '',
+  notes: '',
+  price: '',
+  item_status: 'חדש',
+  is_executable: true
+};
 
 export default function OtherItemForm({ open, onClose, onSave, editItem }) {
-  const [item, setItem] = useState(editItem || {
-    item_location: '',
-    item_type: 'זברה',
-    width: '',
-    height: '',
-    color_or_fabric: '',
-    notes: '',
-    price: '',
-    item_status: 'חדש'
-  });
+  const [item, setItem] = useState(DEFAULT_ITEM);
+
+  useEffect(() => {
+    if (editItem) {
+      setItem({ ...DEFAULT_ITEM, ...editItem });
+    } else {
+      setItem(DEFAULT_ITEM);
+    }
+  }, [editItem]);
 
   const handleSave = () => {
     onSave({
@@ -88,6 +100,20 @@ export default function OtherItemForm({ open, onClose, onSave, editItem }) {
             />
           </div>
 
+          <div className="flex items-center gap-3">
+            <Switch 
+              checked={item.is_executable} 
+              onCheckedChange={(checked) => {
+                const updated = { ...item, is_executable: checked };
+                if (!checked && updated.item_status !== 'הצעת מחיר') {
+                  updated.item_status = 'הצעת מחיר';
+                }
+                setItem(updated);
+              }}
+            />
+            <Label>לביצוע</Label>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>עלות (₪)</Label>
@@ -99,7 +125,16 @@ export default function OtherItemForm({ open, onClose, onSave, editItem }) {
             </div>
             <div>
               <Label>סטטוס</Label>
-              <Select value={item.item_status} onValueChange={(v) => setItem({...item, item_status: v})}>
+              <Select 
+                value={item.item_status} 
+                onValueChange={(v) => {
+                  const updated = { ...item, item_status: v };
+                  if (v === 'הצעת מחיר') {
+                    updated.is_executable = false;
+                  }
+                  setItem(updated);
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -108,6 +143,7 @@ export default function OtherItemForm({ open, onClose, onSave, editItem }) {
                   <SelectItem value="בייצור">בייצור</SelectItem>
                   <SelectItem value="מוכן">מוכן</SelectItem>
                   <SelectItem value="הותקן">הותקן</SelectItem>
+                  <SelectItem value="הצעת מחיר">הצעת מחיר</SelectItem>
                 </SelectContent>
               </Select>
             </div>
