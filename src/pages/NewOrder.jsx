@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, User, Ruler, Grid3X3, CreditCard, Send, ArrowRight, Loader2 } from 'lucide-react';
+import { Plus, User, Ruler, Grid3X3, CreditCard, Send, ArrowRight, Loader2, Calculator } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
 import CurtainItemForm from '@/components/orders/CurtainItemForm';
 import OtherItemForm from '@/components/orders/OtherItemForm';
@@ -17,6 +18,7 @@ import ItemsList from '@/components/orders/ItemsList';
 export default function NewOrder() {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [orderId, setOrderId] = useState(null);
   
@@ -41,7 +43,9 @@ export default function NewOrder() {
     payment_type: '',
     order_notes: '',
     email_for_pdf: '',
-    signature: ''
+    signature: '',
+    discount: '',
+    is_quote: false
   });
 
   // Form dialogs
@@ -67,6 +71,7 @@ export default function NewOrder() {
   };
 
   const loadOrder = async (id) => {
+    setIsLoadingOrder(true);
     setEditMode(true);
     setOrderId(id);
     
@@ -90,7 +95,9 @@ export default function NewOrder() {
         payment_type: order.payment_type || '',
         order_notes: order.order_notes || '',
         email_for_pdf: order.email_for_pdf || '',
-        signature: order.signature || ''
+        signature: order.signature || '',
+        discount: order.discount || '',
+        is_quote: order.is_quote || false
       });
 
       // Load curtain items
@@ -101,9 +108,49 @@ export default function NewOrder() {
       const others = await base44.entities.OtherItems.filter({ order_id: id });
       setOtherItems(others);
     }
+    setIsLoadingOrder(false);
   };
 
+  // Calculation logic
+  const installationCost = parseFloat(payment.installation_cost) || 0;
+  const discountAmount = parseFloat(payment.discount) || 0;
+
+  const allCurtainItems = curtainItems || [];
+  const allOtherItems = otherItems || [];
+  const allItems = [...allCurtainItems, ...allOtherItems];
+
+  // Quote mode → calculate based on ALL items
+  // Normal order → only executable items
+  const executableItems = payment.is_quote
+    ? allItems
+    : allItems.filter(item => item.is_executable !== false);
+
+  const executableItemsTotal = executableItems.reduce(
+    (sum, item) => sum + (parseFloat(item.price) || 0),
+    0
+  );
+
+  // Wall meters (sum of widths)
+  const wallWidthTotal = executableItems.reduce(
+    (sum, item) => sum + (parseFloat(item.width) || 0),
+    0
+  );
+
+  // Total payment = executable items - discount
+  const calculatedTotalPayment = executableItemsTotal - discountAmount;
+
+  // Remaining amount
   const remainingAmount = (parseFloat(payment.total_payment) || 0) - (parseFloat(payment.paid_amount) || 0);
+
+  // Handle quote mode toggle
+  const handleQuoteToggle = (checked) => {
+    setPayment({ ...payment, is_quote: checked });
+    if (checked) {
+      // Set all items to not executable
+      setCurtainItems(prev => prev.map(item => ({ ...item, is_executable: false, item_status: 'הצעת מחיר' })));
+      setOtherItems(prev => prev.map(item => ({ ...item, is_executable: false, item_status: 'הצעת מחיר' })));
+    }
+  };
 
   // Curtain item handlers
   const handleAddCurtain = (item) => {
@@ -153,6 +200,16 @@ export default function NewOrder() {
       return;
     }
 
+    if (curtainItems.length === 0 && otherItems.length === 0) {
+      toast.error('יש להוסיף לפחות וילון אחד או פריט אחד להזמנה');
+      return;
+    }
+
+    if (!payment.total_payment || !payment.paid_amount) {
+      toast.error('נא למלא סה"כ לתשלום ושולם על החשבון');
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Create or update customer
@@ -169,12 +226,15 @@ export default function NewOrder() {
     const orderData = {
       customer_id: customerId,
       customer_name: customer.customer_name,
+      order_number: customer.auto_order_number,
       order_date: new Date().toISOString().split('T')[0],
       installation_cost: parseFloat(payment.installation_cost) || 0,
       total_payment: parseFloat(payment.total_payment) || 0,
       paid_amount: parseFloat(payment.paid_amount) || 0,
       payment_type: payment.payment_type,
       remaining_amount: remainingAmount,
+      discount: discountAmount,
+      is_quote: payment.is_quote,
       order_notes: payment.order_notes,
       email_for_pdf: payment.email_for_pdf,
       signature: payment.signature
@@ -221,6 +281,15 @@ export default function NewOrder() {
     navigate(createPageUrl('OrdersList'));
     setIsSubmitting(false);
   };
+
+  if (isLoadingOrder) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
+        <Loader2 className="h-8 w-8 animate-spin ml-2 text-blue-600" />
+        <span className="text-lg text-slate-600">טוען הזמנה...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
@@ -372,6 +441,42 @@ export default function NewOrder() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
+            {/* Quote Mode Toggle */}
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Switch 
+                  checked={payment.is_quote} 
+                  onCheckedChange={handleQuoteToggle}
+                />
+                <Label className="text-amber-800 font-medium">הזמנה זו היא הצעת מחיר בלבד</Label>
+              </div>
+              {payment.is_quote && (
+                <p className="mt-2 text-sm text-amber-600">כל הפריטים סומנו כ"הצעת מחיר" ולא יחושבו לביצוע.</p>
+              )}
+            </div>
+
+            {/* Summary Section */}
+            <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <div className="text-xs text-blue-600 mb-1">סה"כ פריטים לביצוע</div>
+                <div className="text-lg font-bold text-blue-800">₪{executableItemsTotal.toLocaleString()}</div>
+              </div>
+              <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                <div className="text-xs text-purple-600 mb-1">סה"כ רוחב (מטר קיר)</div>
+                <div className="text-lg font-bold text-purple-800">{wallWidthTotal.toLocaleString()} ס"מ</div>
+              </div>
+              <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                <div className="text-xs text-green-600 mb-1">חישוב אוטומטי</div>
+                <div className="text-lg font-bold text-green-800">₪{calculatedTotalPayment.toLocaleString()}</div>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="text-xs text-slate-600 mb-1">נשאר לתשלום</div>
+                <div className={`text-lg font-bold ${remainingAmount > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                  ₪{remainingAmount.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label>התקנה (₪)</Label>
@@ -383,13 +488,33 @@ export default function NewOrder() {
                 />
               </div>
               <div>
-                <Label>סה"כ לתשלום (₪) *</Label>
+                <Label>הנחה (₪)</Label>
                 <Input 
                   type="number"
-                  value={payment.total_payment}
-                  onChange={(e) => setPayment({...payment, total_payment: e.target.value})}
+                  value={payment.discount}
+                  onChange={(e) => setPayment({...payment, discount: e.target.value})}
                   className="mt-1"
                 />
+              </div>
+              <div>
+                <Label>סה"כ לתשלום (₪) *</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input 
+                    type="number"
+                    value={payment.total_payment}
+                    onChange={(e) => setPayment({...payment, total_payment: e.target.value})}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setPayment({...payment, total_payment: calculatedTotalPayment.toString()})}
+                    className="shrink-0 gap-1"
+                  >
+                    <Calculator className="h-4 w-4" />
+                    מלא
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label>שולם על החשבון (₪) *</Label>
@@ -416,12 +541,6 @@ export default function NewOrder() {
                     <SelectItem value="תשלום במכשיר">תשלום במכשיר</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <Label>נשאר לתשלום (₪)</Label>
-                <div className="mt-1 p-3 bg-slate-100 rounded-md font-bold text-lg text-slate-800">
-                  ₪{remainingAmount.toLocaleString()}
-                </div>
               </div>
               <div>
                 <Label>אימייל לשליחת הטופס</Label>
