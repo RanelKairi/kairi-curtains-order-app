@@ -1,4 +1,4 @@
-Deno.serve(async (req) => {
+export default async function sendOrderToMake(input) {
   try {
     const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
     
@@ -6,9 +6,18 @@ Deno.serve(async (req) => {
       throw new Error("MAKE_WEBHOOK_URL secret is not configured");
     }
 
-    const payload = await req.json();
+    const order = input.data || input;
+    
+    const payload = {
+      event: "order_created",
+      sentAt: new Date().toISOString(),
+      orderId: order.id || order.orderId || order._id,
+      order
+    };
 
-    const response = await fetch(MAKE_WEBHOOK_URL, {
+    console.log("Sending order to Make", payload.orderId);
+
+    const res = await fetch(MAKE_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -16,12 +25,18 @@ Deno.serve(async (req) => {
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {
-      throw new Error(`Make webhook failed with status ${response.status}`);
+    console.log("Make response status", res.status);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      const error = new Error(`Make webhook failed with status ${res.status}: ${errorText}`);
+      console.error("Make webhook failed", error);
+      throw error;
     }
 
-    return Response.json({ ok: true });
+    return { ok: true };
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("Make webhook failed", error);
+    throw error;
   }
-});
+}
