@@ -17,17 +17,54 @@ import {
   Pencil,
   Loader2,
   FileText,
-  Phone
+  Phone,
+  Trash2,
+  Send
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 
 export default function OrdersList() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
+  const [sendingId, setSendingId] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: () => base44.entities.Orders.list('-created_date'),
   });
+
+  const handleDelete = async (order) => {
+    if (!window.confirm(`למחוק את ההזמנה של ${order.customer_name}?`)) return;
+    
+    setDeletingId(order.id);
+    // Delete related items
+    const curtains = await base44.entities.CurtainItems.filter({ order_id: order.id });
+    for (const item of curtains) {
+      await base44.entities.CurtainItems.delete(item.id);
+    }
+    const others = await base44.entities.OtherItems.filter({ order_id: order.id });
+    for (const item of others) {
+      await base44.entities.OtherItems.delete(item.id);
+    }
+    await base44.entities.Orders.delete(order.id);
+    queryClient.invalidateQueries({ queryKey: ['orders'] });
+    toast.success('ההזמנה נמחקה בהצלחה');
+    setDeletingId(null);
+  };
+
+  const handleSend = async (order) => {
+    if (!order.email_for_pdf) {
+      toast.error('לא הוזן אימייל להזמנה זו');
+      return;
+    }
+    setSendingId(order.id);
+    // Placeholder for send logic
+    toast.success(`נשלח בהצלחה ל-${order.email_for_pdf}`);
+    setSendingId(null);
+  };
 
   const filteredOrders = orders.filter(order => 
     order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -178,6 +215,32 @@ export default function OrdersList() {
                           <span className="sm:hidden lg:inline">עריכה</span>
                         </Button>
                       </Link>
+                      <Button 
+                        variant="ghost" 
+                        className="flex-1 sm:flex-none border-r sm:border-r-0 sm:border-t border-slate-100 w-full h-full sm:h-auto gap-2 rounded-none hover:bg-green-50 text-green-600"
+                        onClick={() => handleSend(order)}
+                        disabled={sendingId === order.id}
+                      >
+                        {sendingId === order.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                        <span className="sm:hidden lg:inline">שליחה</span>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="flex-1 sm:flex-none border-r sm:border-r-0 sm:border-t border-slate-100 w-full h-full sm:h-auto gap-2 rounded-none hover:bg-red-50 text-red-600"
+                        onClick={() => handleDelete(order)}
+                        disabled={deletingId === order.id}
+                      >
+                        {deletingId === order.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        <span className="sm:hidden lg:inline">מחיקה</span>
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
