@@ -1,18 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-
-const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL") || "https://hook.eu2.make.com/3oa6nsd49icykzuc2pwdouov6x2eocoo";
-
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
+    const MAKE_WEBHOOK_URL = Deno.env.get("MAKE_WEBHOOK_URL");
     
-    // Support both user calls and automation calls (no auth required for automations)
-    const isAuthenticated = await base44.auth.isAuthenticated();
-    if (isAuthenticated) {
-      const user = await base44.auth.me();
-      if (!user) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    if (!MAKE_WEBHOOK_URL) {
+      throw new Error("MAKE_WEBHOOK_URL secret is not configured");
     }
 
     const payload = await req.json();
@@ -26,8 +17,7 @@ Deno.serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Make webhook failed with status ${response.status}: ${errorText}`);
+      throw new Error(`Make webhook failed with status ${response.status}`);
     }
 
     return Response.json({ ok: true });
