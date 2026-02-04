@@ -260,21 +260,39 @@ export default function NewOrder() {
     }
 
     // Create curtain items
+    const savedCurtainItems = [];
     for (const item of curtainItems) {
       const { id, created_date, updated_date, created_by, ...itemData } = item;
-      await base44.entities.CurtainItems.create({
+      const savedItem = await base44.entities.CurtainItems.create({
         ...itemData,
         order_id: newOrderId
       });
+      savedCurtainItems.push(savedItem);
     }
 
     // Create other items
+    const savedOtherItems = [];
     for (const item of otherItems) {
       const { id, created_date, updated_date, created_by, ...itemData } = item;
-      await base44.entities.OtherItems.create({
+      const savedItem = await base44.entities.OtherItems.create({
         ...itemData,
         order_id: newOrderId
       });
+      savedOtherItems.push(savedItem);
+    }
+
+    // Send to Make.com webhook
+    try {
+      await base44.functions.invoke('sendOrderToMake', {
+        order: { ...orderData, id: newOrderId },
+        customer: { ...customer, id: customerId },
+        curtainItems: savedCurtainItems,
+        otherItems: savedOtherItems,
+        eventType: editMode ? 'order_updated' : 'order_created'
+      });
+    } catch (err) {
+      console.error('Failed to send to Make.com:', err);
+      // Don't block the order save if webhook fails
     }
 
     toast.success(editMode ? 'ההזמנה עודכנה בהצלחה!' : 'ההזמנה נשמרה בהצלחה!');
