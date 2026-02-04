@@ -277,6 +277,25 @@ export default function NewOrder() {
       });
     }
 
+    // Fetch saved order and send to Make
+    const savedOrders = await base44.entities.Orders.filter({ id: newOrderId });
+    const savedOrder = savedOrders[0];
+    
+    const makePayload = {
+      event: editMode ? "order_updated" : "order_created",
+      sentAt: new Date().toISOString(),
+      orderId: savedOrder.id || savedOrder.orderId || savedOrder._id,
+      order: savedOrder
+    };
+
+    try {
+      await base44.functions.invoke('sendOrderToMake', makePayload);
+      console.log("Order sent to Make", makePayload.orderId);
+    } catch (error) {
+      console.error("Failed sending order to Make", error);
+      toast.error('שליחה ל-Make נכשלה, אך ההזמנה נשמרה');
+    }
+
     toast.success(editMode ? 'ההזמנה עודכנה בהצלחה!' : 'ההזמנה נשמרה בהצלחה!');
     navigate(createPageUrl('OrdersList'));
     setIsSubmitting(false);
