@@ -331,12 +331,34 @@ Deno.serve(async (req) => {
       doc.text(`${i} / ${pageCount}`, 105, 295, { align: 'center' });
     }
 
-    // Convert to base64
+    // Convert to base64 for preview
     const pdfBase64 = doc.output('datauristring');
+    
+    // Convert to blob for upload
+    const pdfArrayBuffer = doc.output('arraybuffer');
+    const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+    
+    // Create a File object for upload
+    const fileName = `הזמנה-${order.order_number || orderId}.pdf`;
+    const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+    
+    // Upload the PDF to public storage
+    let pdfUrl = null;
+    try {
+      const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+      pdfUrl = uploadResult.file_url;
+      
+      // Update the order with the PDF URL
+      await base44.asServiceRole.entities.Orders.update(orderId, { pdf_url: pdfUrl });
+    } catch (uploadError) {
+      console.error('Error uploading PDF:', uploadError);
+      // Continue even if upload fails - still return the base64 for preview
+    }
 
     return Response.json({
       success: true,
       pdf: pdfBase64,
+      pdf_url: pdfUrl,
       order: order,
       customer: customer
     });
