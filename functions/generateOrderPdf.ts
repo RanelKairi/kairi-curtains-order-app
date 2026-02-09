@@ -25,14 +25,12 @@ async function loadHeeboFont() {
   }
 }
 
-// Helper function for RTL text with BiDi support
-// Keeps numbers, English text, and special characters in correct order
+// Helper function for RTL text - only reverse Hebrew characters
 function rtlText(text) {
   if (!text) return '';
   const str = text.toString();
   
   // Split text into segments: Hebrew vs non-Hebrew (numbers, English, symbols)
-  // Hebrew Unicode range: \u0590-\u05FF
   const segments = [];
   let currentSegment = '';
   let currentIsHebrew = null;
@@ -57,9 +55,8 @@ function rtlText(text) {
     segments.push({ text: currentSegment, isHebrew: currentIsHebrew });
   }
   
-  // Reverse the order of segments for RTL, and reverse Hebrew segments internally
+  // Only reverse Hebrew segments internally, keep segment order as-is
   const result = segments
-    .reverse()
     .map(segment => {
       if (segment.isHebrew) {
         // Reverse Hebrew characters
