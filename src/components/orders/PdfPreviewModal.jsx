@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Mail, Loader2, FileText, Check, X, Printer, MessageCircle } from 'lucide-react';
+import { Download, Mail, Loader2, FileText, Check, X, MessageCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -51,13 +51,15 @@ export default function PdfPreviewModal({ open, onClose, pdfData, order, custome
     }
     
     const orderType = order?.is_quote ? 'הצעת מחיר' : 'הזמנה';
+    const pdfLink = order?.pdf_url ? `\n\nלצפייה ב${orderType}: ${order.pdf_url}` : '';
     const message = encodeURIComponent(
       `שלום ${customer?.customer_name || ''},\n` +
       `מצורף ${orderType} מספר ${order?.order_number || ''} מקאירי וילונות.\n\n` +
       `סה"כ לתשלום: ₪${(order?.total_payment || 0).toLocaleString()}\n` +
       `שולם: ₪${(order?.paid_amount || 0).toLocaleString()}\n` +
-      `נשאר לתשלום: ₪${(order?.remaining_amount || 0).toLocaleString()}\n\n` +
-      `תודה שבחרתם בקאירי וילונות!`
+      `נשאר לתשלום: ₪${(order?.remaining_amount || 0).toLocaleString()}` +
+      pdfLink +
+      `\n\nתודה שבחרתם בקאירי וילונות!`
     );
     
     window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
@@ -92,6 +94,7 @@ export default function PdfPreviewModal({ open, onClose, pdfData, order, custome
             <li>שולם: ₪${(order?.paid_amount || 0).toLocaleString()}</li>
             <li>נשאר לתשלום: ₪${(order?.remaining_amount || 0).toLocaleString()}</li>
           </ul>
+          ${order?.pdf_url ? `<br/><p><strong>לצפייה ב${orderType}:</strong> <a href="${order.pdf_url}" target="_blank">${order.pdf_url}</a></p>` : ''}
           <br/>
           <p>תודה שבחרתם בקאירי וילונות!</p>
           <p>לשאלות ובירורים אנחנו כאן לשירותכם.</p>
@@ -199,10 +202,6 @@ export default function PdfPreviewModal({ open, onClose, pdfData, order, custome
                 >
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp
-                </Button>
-                <Button variant="outline" onClick={handlePrint} className="gap-2">
-                  <Printer className="h-4 w-4" />
-                  הדפס
                 </Button>
                 <Button onClick={handleDownload} className="gap-2 bg-blue-600 hover:bg-blue-700">
                   <Download className="h-4 w-4" />
