@@ -25,11 +25,53 @@ async function loadHeeboFont() {
   }
 }
 
-// Helper function for RTL text - proper reshaping for Hebrew
+// Helper function for RTL text with BiDi support
+// Keeps numbers, English text, and special characters in correct order
 function rtlText(text) {
   if (!text) return '';
-  // Reverse the string for RTL display
-  return text.toString().split('').reverse().join('');
+  const str = text.toString();
+  
+  // Split text into segments: Hebrew vs non-Hebrew (numbers, English, symbols)
+  // Hebrew Unicode range: \u0590-\u05FF
+  const segments = [];
+  let currentSegment = '';
+  let currentIsHebrew = null;
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    const isHebrew = /[\u0590-\u05FF]/.test(char);
+    
+    if (currentIsHebrew === null) {
+      currentIsHebrew = isHebrew;
+      currentSegment = char;
+    } else if (isHebrew === currentIsHebrew) {
+      currentSegment += char;
+    } else {
+      segments.push({ text: currentSegment, isHebrew: currentIsHebrew });
+      currentSegment = char;
+      currentIsHebrew = isHebrew;
+    }
+  }
+  
+  if (currentSegment) {
+    segments.push({ text: currentSegment, isHebrew: currentIsHebrew });
+  }
+  
+  // Reverse the order of segments for RTL, and reverse Hebrew segments internally
+  const result = segments
+    .reverse()
+    .map(segment => {
+      if (segment.isHebrew) {
+        // Reverse Hebrew characters
+        return segment.text.split('').reverse().join('');
+      } else {
+        // Keep non-Hebrew (numbers, English, symbols) as-is
+        return segment.text;
+      }
+    })
+    .join('');
+  
+  return result;
 }
 
 Deno.serve(async (req) => {
