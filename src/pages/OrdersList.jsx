@@ -17,12 +17,40 @@ import {
   Pencil,
   Loader2,
   FileText,
-  Phone
+  Phone,
+  FileDown
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import PdfPreviewModal from '@/components/orders/PdfPreviewModal';
 
 export default function OrdersList() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfData, setPdfData] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(null);
+
+  const handleGeneratePdf = async (order) => {
+    setIsGeneratingPdf(order.id);
+    try {
+      const response = await base44.functions.invoke('generateOrderPdf', { orderId: order.id });
+      if (response.data.success) {
+        setPdfData(response.data.pdf);
+        setSelectedOrder(response.data.order);
+        setSelectedCustomer(response.data.customer);
+        setPdfModalOpen(true);
+      } else {
+        toast.error('שגיאה בהפקת ה-PDF');
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('שגיאה בהפקת ה-PDF');
+    } finally {
+      setIsGeneratingPdf(null);
+    }
+  };
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['orders'],
@@ -178,6 +206,19 @@ export default function OrdersList() {
                           <span className="sm:hidden lg:inline">עריכה</span>
                         </Button>
                       </Link>
+                      <Button 
+                        variant="ghost" 
+                        className="flex-1 sm:flex-none border-r sm:border-r-0 sm:border-t border-slate-100 w-full h-full sm:h-auto gap-2 rounded-none hover:bg-green-50 text-green-600"
+                        onClick={() => handleGeneratePdf(order)}
+                        disabled={isGeneratingPdf === order.id}
+                      >
+                        {isGeneratingPdf === order.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileDown className="h-4 w-4" />
+                        )}
+                        <span className="sm:hidden lg:inline">PDF</span>
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -193,6 +234,20 @@ export default function OrdersList() {
           </div>
         )}
       </div>
+
+      {/* PDF Preview Modal */}
+      <PdfPreviewModal
+        open={pdfModalOpen}
+        onClose={() => {
+          setPdfModalOpen(false);
+          setPdfData(null);
+          setSelectedOrder(null);
+          setSelectedCustomer(null);
+        }}
+        pdfData={pdfData}
+        order={selectedOrder}
+        customer={selectedCustomer}
+      />
     </div>
   );
 }

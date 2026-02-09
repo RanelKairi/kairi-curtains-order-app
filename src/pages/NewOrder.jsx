@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, User, Ruler, Grid3X3, CreditCard, Send, ArrowRight, Loader2, Calculator } from 'lucide-react';
+import { Plus, User, Ruler, Grid3X3, CreditCard, Send, ArrowRight, Loader2, Calculator, FileDown } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
 import CurtainItemForm from '@/components/orders/CurtainItemForm';
 import OtherItemForm from '@/components/orders/OtherItemForm';
 import ItemsList from '@/components/orders/ItemsList';
+import PdfPreviewModal from '@/components/orders/PdfPreviewModal';
 
 export default function NewOrder() {
   const navigate = useNavigate();
@@ -53,6 +54,38 @@ export default function NewOrder() {
   const [otherFormOpen, setOtherFormOpen] = useState(false);
   const [editingCurtainIndex, setEditingCurtainIndex] = useState(null);
   const [editingOtherIndex, setEditingOtherIndex] = useState(null);
+
+  // PDF Modal
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfData, setPdfData] = useState(null);
+  const [pdfOrder, setPdfOrder] = useState(null);
+  const [pdfCustomer, setPdfCustomer] = useState(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const handleGeneratePdf = async () => {
+    if (!orderId) {
+      toast.error('יש לשמור את ההזמנה לפני הפקת PDF');
+      return;
+    }
+    
+    setIsGeneratingPdf(true);
+    try {
+      const response = await base44.functions.invoke('generateOrderPdf', { orderId });
+      if (response.data.success) {
+        setPdfData(response.data.pdf);
+        setPdfOrder(response.data.order);
+        setPdfCustomer(response.data.customer);
+        setPdfModalOpen(true);
+      } else {
+        toast.error('שגיאה בהפקת ה-PDF');
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('שגיאה בהפקת ה-PDF');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // Load order for edit mode
   useEffect(() => {
@@ -595,7 +628,23 @@ export default function NewOrder() {
         </Card>
 
         {/* Submit Button */}
-        <div className="flex justify-center pb-8">
+        <div className="flex justify-center gap-4 pb-8">
+          {editMode && (
+            <Button 
+              size="lg"
+              variant="outline"
+              onClick={handleGeneratePdf}
+              disabled={isGeneratingPdf}
+              className="gap-2 px-8 py-6 text-lg shadow-lg"
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <FileDown className="h-5 w-5" />
+              )}
+              הפק PDF
+            </Button>
+          )}
           <Button 
             size="lg"
             onClick={handleSubmit}
@@ -630,6 +679,20 @@ export default function NewOrder() {
           }}
           onSave={handleAddOther}
           editItem={editingOtherIndex !== null ? otherItems[editingOtherIndex] : null}
+        />
+
+        {/* PDF Preview Modal */}
+        <PdfPreviewModal
+          open={pdfModalOpen}
+          onClose={() => {
+            setPdfModalOpen(false);
+            setPdfData(null);
+            setPdfOrder(null);
+            setPdfCustomer(null);
+          }}
+          pdfData={pdfData}
+          order={pdfOrder}
+          customer={pdfCustomer}
         />
       </div>
     </div>
