@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Mail, Loader2, FileText, Check, X } from 'lucide-react';
+import { Download, Mail, Loader2, FileText, Check, X, Printer, MessageCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -24,6 +24,43 @@ export default function PdfPreviewModal({ open, onClose, pdfData, order, custome
     link.click();
     document.body.removeChild(link);
     toast.success('הקובץ הורד בהצלחה');
+  };
+
+  const handlePrint = () => {
+    if (!pdfData) return;
+    
+    const printWindow = window.open(pdfData, '_blank');
+    if (printWindow) {
+      printWindow.addEventListener('load', () => {
+        printWindow.print();
+      });
+    }
+  };
+
+  const handleWhatsApp = () => {
+    const phone = customer?.phone;
+    if (!phone) {
+      toast.error('לא נמצא מספר טלפון ללקוח');
+      return;
+    }
+    
+    // Format phone number for WhatsApp (remove dashes, spaces, and add country code if needed)
+    let formattedPhone = phone.replace(/[-\s]/g, '');
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '972' + formattedPhone.substring(1);
+    }
+    
+    const orderType = order?.is_quote ? 'הצעת מחיר' : 'הזמנה';
+    const message = encodeURIComponent(
+      `שלום ${customer?.customer_name || ''},\n` +
+      `מצורף ${orderType} מספר ${order?.order_number || ''} מקאירי וילונות.\n\n` +
+      `סה"כ לתשלום: ₪${(order?.total_payment || 0).toLocaleString()}\n` +
+      `שולם: ₪${(order?.paid_amount || 0).toLocaleString()}\n` +
+      `נשאר לתשלום: ₪${(order?.remaining_amount || 0).toLocaleString()}\n\n` +
+      `תודה שבחרתם בקאירי וילונות!`
+    );
+    
+    window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
   };
 
   const handleSendEmail = async () => {
@@ -148,16 +185,30 @@ export default function PdfPreviewModal({ open, onClose, pdfData, order, custome
               </Button>
             </div>
 
-            {/* Download Button */}
+            {/* Action Buttons */}
             <div className="flex justify-between items-center">
               <Button variant="outline" onClick={handleClose}>
                 <X className="h-4 w-4 ml-2" />
                 סגור
               </Button>
-              <Button onClick={handleDownload} className="gap-2 bg-blue-600 hover:bg-blue-700">
-                <Download className="h-4 w-4" />
-                הורד PDF
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleWhatsApp}
+                  className="gap-2 text-green-600 border-green-600 hover:bg-green-50"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </Button>
+                <Button variant="outline" onClick={handlePrint} className="gap-2">
+                  <Printer className="h-4 w-4" />
+                  הדפס
+                </Button>
+                <Button onClick={handleDownload} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                  <Download className="h-4 w-4" />
+                  הורד PDF
+                </Button>
+              </div>
             </div>
           </div>
         </div>
