@@ -1,6 +1,37 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { jsPDF } from 'npm:jspdf@2.5.1';
 
+// Google Drive direct download URL
+const FONT_URL = 'https://drive.google.com/uc?export=download&id=1w-YmsjZ5ZrfQAVSXjbX7J8HvQJKBIo_C';
+
+async function loadHeeboFont() {
+  try {
+    const response = await fetch(FONT_URL);
+    if (!response.ok) {
+      throw new Error('Failed to fetch font');
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64
+    let binary = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i]);
+    }
+    return btoa(binary);
+  } catch (error) {
+    console.error('Error loading font:', error);
+    return null;
+  }
+}
+
+// Helper function for RTL text - proper reshaping for Hebrew
+function rtlText(text) {
+  if (!text) return '';
+  // Reverse the string for RTL display
+  return text.toString().split('').reverse().join('');
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -15,6 +46,9 @@ Deno.serve(async (req) => {
     if (!orderId) {
       return Response.json({ error: 'Order ID is required' }, { status: 400 });
     }
+
+    // Load Heebo font
+    const heeboFontBase64 = await loadHeeboFont();
 
     // Fetch order data
     const orders = await base44.asServiceRole.entities.Orders.filter({ id: orderId });
@@ -45,11 +79,12 @@ Deno.serve(async (req) => {
       format: 'a4'
     });
 
-    // Helper function for RTL text (reverse for jsPDF)
-    const rtlText = (text) => {
-      if (!text) return '';
-      return text.toString().split('').reverse().join('');
-    };
+    // Add Heebo font if loaded successfully
+    if (heeboFontBase64) {
+      doc.addFileToVFS('Heebo-Regular.ttf', heeboFontBase64);
+      doc.addFont('Heebo-Regular.ttf', 'Heebo', 'normal');
+      doc.setFont('Heebo');
+    }
 
     // Set font size and colors
     const primaryColor = [37, 99, 235]; // Blue
@@ -116,6 +151,9 @@ Deno.serve(async (req) => {
       curtainItems.forEach((item, index) => {
         if (y > 260) {
           doc.addPage();
+          if (heeboFontBase64) {
+            doc.setFont('Heebo');
+          }
           y = 20;
         }
 
@@ -126,9 +164,7 @@ Deno.serve(async (req) => {
         doc.text(rtlText(`רוחב: ${item.width || 0} ס"מ | גובה: ${item.height || 0} ס"מ`), marginRight - 5, y + 5, { align: 'right' });
         doc.text(rtlText(`סוג בד: ${item.fabric_type || ''} | תפירה: ${item.sewing_type || ''}`), marginRight - 5, y + 10, { align: 'right' });
         
-        doc.setFont(undefined, 'bold');
         doc.text(rtlText(`₪${(item.price || 0).toLocaleString()}`), marginLeft + 10, y + 5, { align: 'left' });
-        doc.setFont(undefined, 'normal');
 
         y += 20;
       });
@@ -139,6 +175,9 @@ Deno.serve(async (req) => {
     if (otherItems.length > 0) {
       if (y > 240) {
         doc.addPage();
+        if (heeboFontBase64) {
+          doc.setFont('Heebo');
+        }
         y = 20;
       }
 
@@ -155,6 +194,9 @@ Deno.serve(async (req) => {
       otherItems.forEach((item, index) => {
         if (y > 260) {
           doc.addPage();
+          if (heeboFontBase64) {
+            doc.setFont('Heebo');
+          }
           y = 20;
         }
 
@@ -165,9 +207,7 @@ Deno.serve(async (req) => {
         doc.text(rtlText(`רוחב: ${item.width || 0} ס"מ | גובה: ${item.height || 0} ס"מ`), marginRight - 5, y + 5, { align: 'right' });
         doc.text(rtlText(`צבע/בד: ${item.color_or_fabric || ''}`), marginRight - 5, y + 10, { align: 'right' });
         
-        doc.setFont(undefined, 'bold');
         doc.text(rtlText(`₪${(item.price || 0).toLocaleString()}`), marginLeft + 10, y + 5, { align: 'left' });
-        doc.setFont(undefined, 'normal');
 
         y += 20;
       });
@@ -177,6 +217,9 @@ Deno.serve(async (req) => {
     // Payment section
     if (y > 220) {
       doc.addPage();
+      if (heeboFontBase64) {
+        doc.setFont('Heebo');
+      }
       y = 20;
     }
 
@@ -213,6 +256,9 @@ Deno.serve(async (req) => {
     if (order.order_notes) {
       if (y > 250) {
         doc.addPage();
+        if (heeboFontBase64) {
+          doc.setFont('Heebo');
+        }
         y = 20;
       }
 
@@ -232,6 +278,9 @@ Deno.serve(async (req) => {
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
+      if (heeboFontBase64) {
+        doc.setFont('Heebo');
+      }
       doc.setFillColor(248, 250, 252);
       doc.rect(0, 282, 210, 15, 'F');
       doc.setTextColor(148, 163, 184);
