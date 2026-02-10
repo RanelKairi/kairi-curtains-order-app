@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Mail, Loader2, FileText, Check, X, MessageCircle } from 'lucide-react';
+import { Download, Mail, Loader2, FileText, Check, X, MessageCircle, AlertCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -11,8 +11,18 @@ export default function PdfPreviewModal({ open, onClose, pdfData, order, custome
   const [isSending, setIsSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [customEmail, setCustomEmail] = useState('');
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [pdfError, setPdfError] = useState(false);
 
   const defaultEmail = order?.email_for_pdf || customer?.email || '';
+
+  // Reset loading state when pdfData changes
+  React.useEffect(() => {
+    if (pdfData) {
+      setPdfLoading(true);
+      setPdfError(false);
+    }
+  }, [pdfData]);
 
   const handleDownload = () => {
     if (!pdfData) return;
@@ -135,18 +145,47 @@ export default function PdfPreviewModal({ open, onClose, pdfData, order, custome
 
         <div className="flex-1 overflow-hidden flex flex-col gap-4">
           {/* PDF Preview */}
-          <div className="flex-1 min-h-[400px] border rounded-lg overflow-hidden bg-gray-100">
-            {pdfData ? (
-              <iframe 
-                src={pdfData} 
-                className="w-full h-full"
-                title="PDF Preview"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                <Loader2 className="h-8 w-8 animate-spin ml-2" />
-                טוען...
+          <div className="flex-1 min-h-[500px] border rounded-lg overflow-hidden bg-gray-50 relative">
+            {!pdfData ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                <Loader2 className="h-8 w-8 animate-spin mb-3" />
+                <p className="text-sm">מייצר את ה-PDF...</p>
               </div>
+            ) : pdfError ? (
+              <div className="flex flex-col items-center justify-center h-full text-red-500">
+                <AlertCircle className="h-8 w-8 mb-3" />
+                <p className="text-sm">שגיאה בטעינת ה-PDF</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setPdfError(false);
+                    setPdfLoading(true);
+                  }}
+                  className="mt-3"
+                >
+                  נסה שוב
+                </Button>
+              </div>
+            ) : (
+              <>
+                {pdfLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  </div>
+                )}
+                <iframe 
+                  src={pdfData} 
+                  className="w-full h-full"
+                  title="PDF Preview"
+                  onLoad={() => setPdfLoading(false)}
+                  onError={() => {
+                    setPdfLoading(false);
+                    setPdfError(true);
+                  }}
+                  style={{ border: 'none' }}
+                />
+              </>
             )}
           </div>
 
