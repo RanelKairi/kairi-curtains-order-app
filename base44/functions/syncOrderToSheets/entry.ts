@@ -38,9 +38,25 @@ Deno.serve(async (req) => {
       spreadsheetId = newSheet.spreadsheetId;
       console.log(`✅ Created new spreadsheet. Set GOOGLE_SHEETS_ID=${spreadsheetId}`);
       console.log(`🔗 https://docs.google.com/spreadsheets/d/${spreadsheetId}`);
+    }
 
+    // Get the actual first sheet name
+    const metaRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    const meta = await metaRes.json();
+    const sheetName = meta.sheets?.[0]?.properties?.title || 'Sheet1';
+    const range = `${sheetName}!A1`;
+
+    // Check if headers exist (row 1)
+    const checkRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName + '!A1')}`,
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
+    const checkData = await checkRes.json();
+    if (!checkData.values || checkData.values.length === 0) {
       // Add headers row
-      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1:append?valueInputOption=RAW`, {
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ values: [HEADERS] })
@@ -63,7 +79,7 @@ Deno.serve(async (req) => {
     ];
 
     const appendRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sheet1!A1:append?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`,
       {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
