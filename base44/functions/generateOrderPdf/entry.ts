@@ -27,27 +27,19 @@ async function loadHeeboFont() {
 
 // Helper function for RTL text - only reverse Hebrew characters
 // פונקציה משופרת לטיפול בטקסט מימין לשמאל (RTL) הכוללת מספרים ואנגלית
+// פונקציה סופית לסידור טקסט RTL עבור jsPDF
 function rtlText(text) {
   if (!text) return '';
-  let str = text.toString();
-
-  // טיפול ספציפי בתאריכים (אם המחרוזת נראית כמו תאריך, נהפוך רק את המקפים)
-  if (/\d{4}-\d{2}-\d{2}/.test(str)) {
-     return str.split('-').reverse().join('-');
-  }
-
-  // פונקציית עזר להיפוך מילים בעברית בלבד
-  const reverseHebrew = (s) => s.split('').reverse().join('');
-
-  // פירוק המשפט למילים
-  return str.split(' ').map(word => {
-    // אם המילה מכילה עברית - נהפוך אותה
-    if (/[\u0590-\u05FF]/.test(word)) {
-      return reverseHebrew(word);
-    }
-    // אם זה מספר או אנגלית - נשאיר אותו כפי שהוא
-    return word;
-  }).reverse().join(' '); // נהפוך את סדר המילים במשפט כולו
+  const str = text.toString();
+  
+  // 1. הופכים את כל המחרוזת כבסיס (מייצר כתב ראי מלא)
+  const reversedStr = str.split('').reverse().join('');
+  
+  // 2. מוצאים רק מקטעים רציפים של אנגלית, מספרים, וסימנים פנימיים (כמו תאריך או פסיק במחיר)
+  // והופכים אותם חזרה כדי שיישארו קריאים.
+  return reversedStr.replace(/([a-zA-Z0-9₪$€%]+(?:[\.,\-\/][a-zA-Z0-9₪$€%]+)*)/g, match => {
+    return match.split('').reverse().join('');
+  });
 }
 
 Deno.serve(async (req) => {
