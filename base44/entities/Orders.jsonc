@@ -1,0 +1,143 @@
+{
+  "name": "Orders",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "description": "\u05de\u05d6\u05d4\u05d4 \u05dc\u05e7\u05d5\u05d7"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "\u05e9\u05dd \u05dc\u05e7\u05d5\u05d7"
+    },
+    "order_number": {
+      "type": "string",
+      "description": "\u05de\u05e1\u05e4\u05e8 \u05d4\u05d6\u05de\u05e0\u05d4"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u05ea\u05d0\u05e8\u05d9\u05da \u05d4\u05d6\u05de\u05e0\u05d4"
+    },
+    "order_status": {
+      "type": "string",
+      "enum": [
+        "\u05d4\u05e6\u05e2\u05ea \u05de\u05d7\u05d9\u05e8",
+        "\u05de\u05de\u05ea\u05d9\u05df \u05dc\u05d2\u05d1\u05d9\u05d9\u05d4",
+        "\u05d7\u05d3\u05e9 \u05dc\u05d1\u05d9\u05e6\u05d5\u05e2",
+        "\u05d1\u05d9\u05d9\u05e6\u05d5\u05e8",
+        "\u05d4\u05d5\u05e9\u05dc\u05dd"
+      ],
+      "default": "\u05d7\u05d3\u05e9 \u05dc\u05d1\u05d9\u05e6\u05d5\u05e2",
+      "description": "\u05e1\u05d8\u05d8\u05d5\u05e1 \u05d4\u05d6\u05de\u05e0\u05d4"
+    },
+    "production_phase": {
+      "type": "string",
+      "enum": [
+        "\u05e0\u05e9\u05dc\u05d7 \u05dc\u05de\u05ea\u05e4\u05e8\u05d4",
+        "\u05e0\u05d2\u05d6\u05e8",
+        "\u05de\u05d7\u05db\u05d4 \u05dc\u05d0\u05d9\u05e1\u05d5\u05e3",
+        "\u05de\u05d5\u05db\u05df"
+      ],
+      "description": "\u05e9\u05dc\u05d1 \u05d9\u05d9\u05e6\u05d5\u05e8"
+    },
+    "installation_cost": {
+      "type": "number",
+      "description": "\u05d4\u05ea\u05e7\u05e0\u05d4"
+    },
+    "total_payment": {
+      "type": "number",
+      "description": "\u05e1\u05d4\"\u05db \u05dc\u05ea\u05e9\u05dc\u05d5\u05dd"
+    },
+    "paid_amount": {
+      "type": "number",
+      "description": "\u05e9\u05d5\u05dc\u05dd \u05e2\u05dc \u05d4\u05d7\u05e9\u05d1\u05d5\u05df"
+    },
+    "payment_type": {
+      "type": "string",
+      "enum": [
+        "\u05e6'\u05e7",
+        "\u05d0\u05e9\u05e8\u05d0\u05d9",
+        "\u05de\u05d6\u05d5\u05de\u05df",
+        "\u05ea\u05e9\u05dc\u05d5\u05dd \u05d1\u05de\u05db\u05e9\u05d9\u05e8"
+      ],
+      "description": "\u05e1\u05d5\u05d2 \u05ea\u05e9\u05dc\u05d5\u05dd"
+    },
+    "remaining_amount": {
+      "type": "number",
+      "description": "\u05e0\u05e9\u05d0\u05e8 \u05dc\u05ea\u05e9\u05dc\u05d5\u05dd"
+    },
+    "discount": {
+      "type": "number",
+      "description": "\u05d4\u05e0\u05d7\u05d4"
+    },
+    "is_quote": {
+      "type": "boolean",
+      "description": "\u05d4\u05d0\u05dd \u05d4\u05d4\u05d6\u05de\u05e0\u05d4 \u05d4\u05d9\u05d0 \u05d4\u05e6\u05e2\u05ea \u05de\u05d7\u05d9\u05e8 \u05d1\u05dc\u05d1\u05d3"
+    },
+    "order_notes": {
+      "type": "string",
+      "description": "\u05d4\u05e2\u05e8\u05d5\u05ea"
+    },
+    "email_for_pdf": {
+      "type": "string",
+      "description": "\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05dc\u05e9\u05dc\u05d9\u05d7\u05ea \u05d4\u05d8\u05d5\u05e4\u05e1"
+    },
+    "signature": {
+      "type": "string",
+      "description": "\u05d7\u05ea\u05d9\u05de\u05d4"
+    },
+    "fireberry_order_id": {
+      "type": "string",
+      "description": "\u05de\u05d6\u05d4\u05d4 \u05d4\u05d6\u05de\u05e0\u05d4 \u05d1-Fireberry"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "\u05e7\u05d9\u05e9\u05d5\u05e8 \u05dc\u05e7\u05d5\u05d1\u05e5 PDF"
+    }
+  },
+  "required": [
+    "customer_id",
+    "total_payment",
+    "paid_amount"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

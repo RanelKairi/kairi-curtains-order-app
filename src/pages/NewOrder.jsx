@@ -15,6 +15,7 @@ import CurtainItemForm from '@/components/orders/CurtainItemForm';
 import OtherItemForm from '@/components/orders/OtherItemForm';
 import ItemsList from '@/components/orders/ItemsList';
 import PdfPreviewModal from '@/components/orders/PdfPreviewModal';
+import OrderStatusDialog from '@/components/orders/OrderStatusDialog';
 
 export default function NewOrder() {
   const navigate = useNavigate();
@@ -61,6 +62,10 @@ export default function NewOrder() {
   const [pdfOrder, setPdfOrder] = useState(null);
   const [pdfCustomer, setPdfCustomer] = useState(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // Status dialog
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [pendingOrderData, setPendingOrderData] = useState(null);
 
   const handleGeneratePdf = async () => {
     if (!orderId) {
@@ -243,6 +248,24 @@ export default function NewOrder() {
       return;
     }
 
+    // In edit mode, skip the dialog and preserve existing status
+    if (editMode) {
+      const existingOrders = await base44.entities.Orders.filter({ id: orderId });
+      const existingStatus = existingOrders[0]?.order_status || 'חדש לביצוע';
+      await saveOrder(existingStatus);
+      return;
+    }
+
+    // Show status selection dialog for new orders
+    setStatusDialogOpen(true);
+  };
+
+  const handleStatusSelected = async (status) => {
+    setStatusDialogOpen(false);
+    await saveOrder(status);
+  };
+
+  const saveOrder = async (orderStatus) => {
     setIsSubmitting(true);
 
     // Create or update customer
@@ -267,7 +290,8 @@ export default function NewOrder() {
       payment_type: payment.payment_type,
       remaining_amount: remainingAmount,
       discount: discountAmount,
-      is_quote: payment.is_quote,
+      is_quote: orderStatus === 'הצעת מחיר',
+      order_status: orderStatus,
       order_notes: payment.order_notes,
       email_for_pdf: payment.email_for_pdf,
       signature: payment.signature
@@ -679,6 +703,13 @@ export default function NewOrder() {
           }}
           onSave={handleAddOther}
           editItem={editingOtherIndex !== null ? otherItems[editingOtherIndex] : null}
+        />
+
+        {/* Order Status Dialog */}
+        <OrderStatusDialog
+          open={statusDialogOpen}
+          onClose={() => setStatusDialogOpen(false)}
+          onSelect={handleStatusSelected}
         />
 
         {/* PDF Preview Modal */}
