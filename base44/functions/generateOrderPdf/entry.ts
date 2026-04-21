@@ -26,49 +26,20 @@ async function loadHeeboFont() {
 }
 
 // Helper function for RTL text - only reverse Hebrew characters
+// פונקציה משופרת לטיפול בטקסט מימין לשמאל (RTL) הכוללת מספרים ואנגלית
 function rtlText(text) {
   if (!text) return '';
   const str = text.toString();
   
-  // Split text into segments: Hebrew vs non-Hebrew (numbers, English, symbols)
-  const segments = [];
-  let currentSegment = '';
-  let currentIsHebrew = null;
+  // 1. הופכים את כל המחרוזת כבסיס
+  const reversedStr = str.split('').reverse().join('');
   
-  for (let i = 0; i < str.length; i++) {
-    const char = str[i];
-    const isHebrew = /[\u0590-\u05FF]/.test(char);
-    
-    if (currentIsHebrew === null) {
-      currentIsHebrew = isHebrew;
-      currentSegment = char;
-    } else if (isHebrew === currentIsHebrew) {
-      currentSegment += char;
-    } else {
-      segments.push({ text: currentSegment, isHebrew: currentIsHebrew });
-      currentSegment = char;
-      currentIsHebrew = isHebrew;
-    }
-  }
-  
-  if (currentSegment) {
-    segments.push({ text: currentSegment, isHebrew: currentIsHebrew });
-  }
-  
-  // Only reverse Hebrew segments internally, keep segment order as-is
-  const result = segments
-    .map(segment => {
-      if (segment.isHebrew) {
-        // Reverse Hebrew characters
-        return segment.text.split('').reverse().join('');
-      } else {
-        // Keep non-Hebrew (numbers, English, symbols) as-is
-        return segment.text;
-      }
-    })
-    .join('');
-  
-  return result;
+  // 2. משתמשים ב-Regex כדי למצוא מקטעים של מספרים, אנגלית ותווים מיוחדים שצריכים להישאר משמאל לימין
+  // הקוד הזה מזהה מספרים, אותיות באנגלית, וסימנים כמו סוגריים ונקודתיים
+  return reversedStr.replace(/([\d\u0020-\u003F\u0041-\u005A\u0061-\u007A]+)/g, (match) => {
+    // הופכים חזרה רק את המקטע ה"לועזי" כדי שיוצג נכון בתוך העברית ההפוכה
+    return match.split('').reverse().join('');
+  });
 }
 
 Deno.serve(async (req) => {
