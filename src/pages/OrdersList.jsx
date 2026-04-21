@@ -17,9 +17,9 @@ import PdfPreviewModal from '@/components/orders/PdfPreviewModal';
 import StartExecutionModal from '@/components/orders/StartExecutionModal';
 
 const TABS = [
+  { value: 'all', label: 'כל ההזמנות' },
   { value: 'הצעת מחיר', label: 'הצעות מחיר' },
   { value: 'ממתין לגבייה', label: 'ממתין לגבייה' },
-  { value: 'חדש לביצוע', label: 'חדש לביצוע' },
   { value: 'בייצור', label: 'בייצור' },
   { value: 'הושלם', label: 'הושלמו' },
 ];
@@ -69,12 +69,12 @@ export default function OrdersList() {
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = (order.order_status || 'חדש לביצוע') === activeTab;
+    const matchesTab = activeTab === 'all' || order.order_status === activeTab;
     return matchesSearch && matchesTab;
   });
 
   const tabCount = (status) =>
-    orders.filter(o => (o.order_status || 'חדש לביצוע') === status).length;
+    status === 'all' ? orders.length : orders.filter(o => o.order_status === status).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
@@ -146,6 +146,7 @@ export default function OrdersList() {
                       order={order}
                       onGeneratePdf={handleGeneratePdf}
                       isGeneratingPdf={isGeneratingPdf}
+                      showStartExecution={activeTab === 'ממתין לגבייה'}
                       onStartExecution={() => setExecutionOrder(order)}
                     />
                   ))}
@@ -177,9 +178,8 @@ export default function OrdersList() {
   );
 }
 
-function OrderCard({ order, onGeneratePdf, isGeneratingPdf, onStartExecution }) {
-  const statusClass = STATUS_BADGE[order.order_status] || STATUS_BADGE['חדש לביצוע'];
-  const isNewExecution = (order.order_status || 'חדש לביצוע') === 'חדש לביצוע';
+function OrderCard({ order, onGeneratePdf, isGeneratingPdf, showStartExecution, onStartExecution }) {
+  const statusClass = STATUS_BADGE[order.order_status] || 'bg-slate-100 text-slate-700';
 
   return (
     <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
@@ -231,7 +231,7 @@ function OrderCard({ order, onGeneratePdf, isGeneratingPdf, onStartExecution }) 
 
           {/* Actions */}
           <div className="flex sm:flex-col border-t sm:border-t-0 sm:border-r border-slate-100 bg-slate-50">
-            {isNewExecution && (
+            {showStartExecution && (
               <Button
                 variant="ghost"
                 className="flex-1 sm:flex-none gap-2 rounded-none hover:bg-blue-50 text-blue-700 font-semibold"
