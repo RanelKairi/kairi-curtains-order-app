@@ -29,17 +29,25 @@ async function loadHeeboFont() {
 // פונקציה משופרת לטיפול בטקסט מימין לשמאל (RTL) הכוללת מספרים ואנגלית
 function rtlText(text) {
   if (!text) return '';
-  const str = text.toString();
-  
-  // 1. הופכים את כל המחרוזת כבסיס
-  const reversedStr = str.split('').reverse().join('');
-  
-  // 2. משתמשים ב-Regex כדי למצוא מקטעים של מספרים, אנגלית ותווים מיוחדים שצריכים להישאר משמאל לימין
-  // הקוד הזה מזהה מספרים, אותיות באנגלית, וסימנים כמו סוגריים ונקודתיים
-  return reversedStr.replace(/([\d\u0020-\u003F\u0041-\u005A\u0061-\u007A]+)/g, (match) => {
-    // הופכים חזרה רק את המקטע ה"לועזי" כדי שיוצג נכון בתוך העברית ההפוכה
-    return match.split('').reverse().join('');
-  });
+  let str = text.toString();
+
+  // טיפול ספציפי בתאריכים (אם המחרוזת נראית כמו תאריך, נהפוך רק את המקפים)
+  if (/\d{4}-\d{2}-\d{2}/.test(str)) {
+     return str.split('-').reverse().join('-');
+  }
+
+  // פונקציית עזר להיפוך מילים בעברית בלבד
+  const reverseHebrew = (s) => s.split('').reverse().join('');
+
+  // פירוק המשפט למילים
+  return str.split(' ').map(word => {
+    // אם המילה מכילה עברית - נהפוך אותה
+    if (/[\u0590-\u05FF]/.test(word)) {
+      return reverseHebrew(word);
+    }
+    // אם זה מספר או אנגלית - נשאיר אותו כפי שהוא
+    return word;
+  }).reverse().join(' '); // נהפוך את סדר המילים במשפט כולו
 }
 
 Deno.serve(async (req) => {
