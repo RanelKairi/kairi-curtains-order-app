@@ -154,7 +154,7 @@ export default function StartExecutionModal({ open, onClose, order, onSaved }) {
             className="bg-blue-600 hover:bg-blue-700 gap-2"
           >
             {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-            שמור והעבר לבייצור
+            שמור והעבר ל"חדש לביצוע"
           </Button>
         </DialogFooter>
       </DialogContent>
