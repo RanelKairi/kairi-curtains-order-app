@@ -62,7 +62,7 @@ export default function StartExecutionModal({ open, onClose, order, onSaved }) {
       )
     ]);
 
-    await base44.entities.Orders.update(order.id, { order_status: 'בייצור' });
+    await base44.entities.Orders.update(order.id, { order_status: 'חדש לביצוע' });
 
     toast.success('ההזמנה הועברה לבייצור!');
     setIsSaving(false);
