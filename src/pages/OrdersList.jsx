@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Plus, Search, Calendar, User, Loader2, FileText, FileDown, Pencil, Play
+  Plus, Search, Calendar, User, Loader2, FileText, FileDown, Pencil, Play, Send, BarChart2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -43,6 +43,7 @@ export default function OrdersList() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(null);
   const [executionOrder, setExecutionOrder] = useState(null);
+  const [sendingToExecution, setSendingToExecution] = useState(null);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['orders'],
@@ -68,6 +69,14 @@ export default function OrdersList() {
     }
   };
 
+  const handleSendToExecution = async (order) => {
+    setSendingToExecution(order.id);
+    await base44.entities.Orders.update(order.id, { order_status: 'חדש לביצוע' });
+    toast.success('ההזמנה הועברה לחדש לביצוע');
+    queryClient.invalidateQueries({ queryKey: ['orders'] });
+    setSendingToExecution(null);
+  };
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTab = activeTab === 'all' || order.order_status === activeTab;
@@ -86,12 +95,20 @@ export default function OrdersList() {
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">הזמנות</h1>
             <p className="text-slate-500 mt-1">קאירי וילונות</p>
           </div>
-          <Link to={createPageUrl('NewOrder')}>
-            <Button className="gap-2 bg-gradient-to-l from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg">
-              <Plus className="h-4 w-4" />
-              הזמנה חדשה
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link to="/DailyReport">
+              <Button variant="outline" className="gap-2">
+                <BarChart2 className="h-4 w-4" />
+                דוח יומי
+              </Button>
+            </Link>
+            <Link to={createPageUrl('NewOrder')}>
+              <Button className="gap-2 bg-gradient-to-l from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg">
+                <Plus className="h-4 w-4" />
+                הזמנה חדשה
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Search */}
@@ -147,8 +164,9 @@ export default function OrdersList() {
                       order={order}
                       onGeneratePdf={handleGeneratePdf}
                       isGeneratingPdf={isGeneratingPdf}
-                      showStartExecution={activeTab === 'ממתין לגבייה'}
                       onStartExecution={() => setExecutionOrder(order)}
+                      onSendToExecution={handleSendToExecution}
+                      isSendingToExecution={sendingToExecution === order.id}
                     />
                   ))}
                   <div className="text-center text-sm text-slate-500 pt-2">
@@ -179,8 +197,11 @@ export default function OrdersList() {
   );
 }
 
-function OrderCard({ order, onGeneratePdf, isGeneratingPdf, showStartExecution, onStartExecution }) {
+function OrderCard({ order, onGeneratePdf, isGeneratingPdf, onStartExecution, onSendToExecution, isSendingToExecution }) {
   const statusClass = STATUS_BADGE[order.order_status] || 'bg-slate-100 text-slate-700';
+  const status = order.order_status;
+  const showSendToExecution = status === 'ממתין לגבייה' || (!status);
+  const showStartExecution = status === 'חדש לביצוע';
 
   return (
     <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
@@ -232,6 +253,17 @@ function OrderCard({ order, onGeneratePdf, isGeneratingPdf, showStartExecution, 
 
           {/* Actions */}
           <div className="flex sm:flex-col border-t sm:border-t-0 sm:border-r border-slate-100 bg-slate-50">
+            {showSendToExecution && (
+              <Button
+                variant="ghost"
+                className="flex-1 sm:flex-none gap-2 rounded-none hover:bg-green-50 text-green-700 font-semibold"
+                onClick={() => onSendToExecution(order)}
+                disabled={isSendingToExecution}
+              >
+                {isSendingToExecution ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <span className="sm:hidden lg:inline">שלח לביצוע</span>
+              </Button>
+            )}
             {showStartExecution && (
               <Button
                 variant="ghost"
@@ -239,7 +271,7 @@ function OrderCard({ order, onGeneratePdf, isGeneratingPdf, showStartExecution, 
                 onClick={onStartExecution}
               >
                 <Play className="h-4 w-4" />
-                <span className="sm:hidden lg:inline">התחל ביצוע</span>
+                <span className="sm:hidden lg:inline">התחלת ביצוע</span>
               </Button>
             )}
             <Link to={createPageUrl(`NewOrder?edit=${order.id}`)} className="flex-1 sm:flex-none border-r sm:border-r-0 sm:border-t border-slate-100">

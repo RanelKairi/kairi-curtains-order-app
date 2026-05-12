@@ -1,17 +1,9 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Send, Clock, FileText } from 'lucide-react';
+import { Clock, FileText } from 'lucide-react';
 
 const OPTIONS = [
-  {
-    label: 'שליחת ההזמנה לביצוע',
-    description: 'ההזמנה תועבר לסטטוס "חדש לביצוע"',
-    status: 'חדש לביצוע',
-    icon: Send,
-    color: 'bg-blue-50 border-blue-200 hover:bg-blue-100 text-blue-800',
-    iconColor: 'text-blue-600'
-  },
   {
     label: 'בקשה לגבייה + העברה לביצוע',
     description: 'ההזמנה תועבר לסטטוס "ממתין לגבייה"',
