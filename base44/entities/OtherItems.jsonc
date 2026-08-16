@@ -1,0 +1,70 @@
+{
+  "name": "OtherItems",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "\u05de\u05d6\u05d4\u05d4 \u05d4\u05d6\u05de\u05e0\u05d4"
+    },
+    "item_location": {
+      "type": "string",
+      "description": "\u05de\u05d9\u05e7\u05d5\u05dd"
+    },
+    "item_type": {
+      "type": "string",
+      "enum": [
+        "\u05d6\u05d1\u05e8\u05d4",
+        "\u05d5\u05e0\u05e6\u05d9\u05d0\u05e0\u05d9",
+        "\u05e8\u05d5\u05de\u05d9",
+        "\u05d2\u05dc\u05d9\u05dc\u05d4"
+      ],
+      "description": "\u05e1\u05d5\u05d2 \u05e4\u05e8\u05d9\u05d8"
+    },
+    "width": {
+      "type": "number",
+      "description": "\u05e8\u05d5\u05d7\u05d1"
+    },
+    "height": {
+      "type": "number",
+      "description": "\u05d2\u05d5\u05d1\u05d4"
+    },
+    "color_or_fabric": {
+      "type": "string",
+      "description": "\u05e6\u05d1\u05e2 / \u05e1\u05d5\u05d2 \u05d1\u05d3"
+    },
+    "notes": {
+      "type": "string",
+      "description": "\u05d4\u05e2\u05e8\u05d5\u05ea"
+    },
+    "price": {
+      "type": "number",
+      "description": "\u05e2\u05dc\u05d5\u05ea"
+    },
+    "item_status": {
+      "type": "string",
+      "enum": [
+        "\u05d7\u05d3\u05e9",
+        "\u05d1\u05d9\u05d9\u05e6\u05d5\u05e8",
+        "\u05de\u05d5\u05db\u05df",
+        "\u05d4\u05d5\u05ea\u05e7\u05df",
+        "\u05d4\u05e6\u05e2\u05ea \u05de\u05d7\u05d9\u05e8"
+      ],
+      "description": "\u05e1\u05d8\u05d8\u05d5\u05e1 \u05d2\u05dc\u05d9\u05dc\u05d4"
+    },
+    "is_executable": {
+      "type": "boolean",
+      "description": "\u05e4\u05e8\u05d9\u05d8 \u05dc\u05d1\u05d9\u05e6\u05d5\u05e2"
+    }
+  },
+  "required": [
+    "order_id",
+    "item_location",
+    "item_type"
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": null,
+    "delete": null
+  }
+}
